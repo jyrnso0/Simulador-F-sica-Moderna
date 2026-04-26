@@ -1,0 +1,616 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Simulador de Reacciones Nucleares - FIME UANL</title>
+<style>
+:root {
+  --blue: #004a99;
+  --gold: #b59410;
+  --red:  #b83020;
+  --green:#1a6a3a;
+  --bg:   #f1f4f8;
+  --card: #ffffff;
+  --panel:#f8fafc;
+  --border:#e2e8f0;
+  --text: #334155;
+  --mid:  #64748b;
+  --light:#94a3b8;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body {
+  font-family: 'Segoe UI', system-ui, sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  display: flex;
+  justify-content: center;
+  padding: 24px 16px 40px;
+}
+.container {
+  max-width: 1100px;
+  width: 100%;
+  background: var(--card);
+  border-radius: 12px;
+  padding: 28px 30px 32px;
+  box-shadow: 0 4px 24px rgba(0,0,0,0.07);
+}
+header {
+  text-align: center;
+  padding-bottom: 18px;
+  margin-bottom: 22px;
+  border-bottom: 2px solid var(--border);
+}
+header h1 { color: var(--blue); font-size: 1.5rem; letter-spacing: 0.05em; margin-bottom: 4px; }
+header p  { color: var(--light); font-size: 0.8rem; letter-spacing: 0.03em; }
+
+.tabs {
+  display: grid;
+  grid-template-columns: repeat(3,1fr);
+  gap: 10px;
+  margin-bottom: 22px;
+}
+.tab {
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 14px 8px;
+  cursor: pointer;
+  text-align: center;
+  font-size: 0.82rem;
+  font-weight: 700;
+  color: var(--mid);
+  letter-spacing: 0.04em;
+  transition: all 0.18s;
+}
+.tab .icon { font-size: 1.4rem; display: block; margin-bottom: 5px; }
+.tab:hover { border-color: var(--blue); color: var(--blue); background: #eef3fb; }
+.tab.act-fision { background:#fff5f5; border-color:var(--red);   color:var(--red);   }
+.tab.act-fusion { background:#f0f7ff; border-color:var(--blue);  color:var(--blue);  }
+.tab.act-decay  { background:#f0faf4; border-color:var(--green); color:var(--green); }
+
+.main-grid {
+  display: grid;
+  grid-template-columns: 1fr 290px;
+  gap: 20px;
+  margin-bottom: 20px;
+}
+@media (max-width: 720px) { .main-grid { grid-template-columns: 1fr; } }
+
+.viewport {
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  overflow: hidden;
+  position: relative;
+  background: #fafcff;
+  height: 400px;
+}
+.vp-label {
+  position: absolute; top: 10px; left: 14px;
+  font-size: 0.6rem; font-weight: 700; letter-spacing: 0.12em;
+  text-transform: uppercase; color: var(--light); z-index: 20;
+}
+#scene { width: 100%; height: 100%; display: block; }
+
+.controls {
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+.ctrl-sec { padding-bottom: 16px; margin-bottom: 16px; border-bottom: 1px solid var(--border); }
+.ctrl-sec:last-child { border-bottom: none; margin-bottom: 0; padding-bottom: 0; }
+.ctrl-title { font-size: 0.68rem; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; color: var(--blue); margin-bottom: 10px; }
+.opt-list { display: flex; flex-direction: column; gap: 6px; }
+.opt-btn {
+  background: white;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 9px 12px;
+  cursor: pointer;
+  display: flex; justify-content: space-between; align-items: center;
+  font-size: 0.8rem; color: var(--text); transition: all 0.15s; text-align: left;
+}
+.opt-btn:hover { border-color: var(--blue); }
+.opt-btn.active { background: var(--blue); color: white; border-color: var(--blue); }
+.opt-btn .sub { font-size: 0.7rem; opacity: 0.75; }
+.info-box { font-size: 0.78rem; color: var(--mid); line-height: 1.7; }
+.sim-btn {
+  width: 100%; background: var(--blue); color: white; border: none;
+  border-radius: 7px; padding: 12px; font-size: 0.85rem; font-weight: 700;
+  letter-spacing: 0.05em; cursor: pointer; transition: background 0.18s;
+}
+.sim-btn:hover { background: #003a7a; }
+
+.eq-bar {
+  background: var(--panel); border: 1px solid var(--border); border-radius: 8px;
+  padding: 12px 18px; font-size: 0.95rem; text-align: center; color: var(--text);
+  letter-spacing: 0.03em; font-style: italic; margin-bottom: 14px;
+}
+.ebar-wrap { margin-bottom: 14px; }
+.ebar-label { display: flex; justify-content: space-between; font-size: 0.68rem; color: var(--mid); margin-bottom: 5px; font-weight: 600; letter-spacing: 0.05em; text-transform: uppercase; }
+.ebar-bg { background: var(--border); height: 7px; border-radius: 4px; overflow: hidden; }
+.ebar-fill { height: 100%; border-radius: 4px; width: 0; transition: width 0.8s ease; }
+.fill-red   { background: linear-gradient(90deg,#b83020,#e05030); }
+.fill-blue  { background: linear-gradient(90deg,#004a99,#2a7aee); }
+.fill-green { background: linear-gradient(90deg,#1a6a3a,#3aaa6a); }
+
+.results-row { display: grid; grid-template-columns: repeat(4,1fr); gap: 12px; margin-bottom: 16px; }
+@media (max-width: 600px) { .results-row { grid-template-columns: repeat(2,1fr); } }
+.res-card { background: white; border: 1px solid var(--border); border-radius: 8px; padding: 14px 10px; text-align: center; }
+.res-card.hi { border-color: var(--gold); background: #fffdf5; }
+.res-card .val { font-size: 1.05rem; font-weight: 800; margin-bottom: 4px; line-height: 1.3; }
+.res-card .lbl { font-size: 0.6rem; color: var(--light); text-transform: uppercase; font-weight: 700; letter-spacing: 0.06em; }
+
+.explanation { background: var(--panel); border: 1px solid var(--border); border-radius: 8px; padding: 14px 16px; font-size: 0.82rem; line-height: 1.75; color: var(--text); }
+.explanation strong { font-weight: 600; }
+.exp-red   strong { color: var(--red); }
+.exp-blue  strong { color: var(--blue); }
+.exp-green strong { color: var(--green); }
+</style>
+</head>
+<body>
+<div class="container">
+
+  <header>
+    <h1>SIMULADOR DE REACCIONES NUCLEARES</h1>
+    <p>Física Moderna · FIME UANL</p>
+  </header>
+
+  <div class="tabs">
+    <button class="tab" id="tab-fision" onclick="setMode('fision')">
+      <span class="icon">⚛</span>FISIÓN NUCLEAR
+    </button>
+    <button class="tab" id="tab-fusion" onclick="setMode('fusion')">
+      <span class="icon">☀</span>FUSIÓN NUCLEAR
+    </button>
+    <button class="tab" id="tab-decay" onclick="setMode('decay')">
+      <span class="icon">☢</span>DECAIMIENTO
+    </button>
+  </div>
+
+  <div class="main-grid">
+    <div class="viewport">
+      <div class="vp-label" id="vp-label">Cámara de Simulación</div>
+      <svg id="scene" viewBox="0 0 680 400" preserveAspectRatio="xMidYMid meet">
+        <rect width="680" height="400" fill="#f8faff"/>
+        <rect x="16" y="16" width="648" height="368" rx="8" fill="none" stroke="#e2e8f0" stroke-width="1.5"/>
+        <text id="idle-text" x="340" y="192" text-anchor="middle"
+              font-family="Segoe UI,sans-serif" font-size="14" fill="#c8d8e8" font-weight="600">
+          Selecciona una reacción y presiona Simular
+        </text>
+        <text id="idle-sub" x="340" y="214" text-anchor="middle"
+              font-family="Segoe UI,sans-serif" font-size="11" fill="#dde8f0">
+          Fisión · Fusión · Decaimiento Radiactivo
+        </text>
+        <g id="particles"></g>
+      </svg>
+    </div>
+
+    <div class="controls">
+      <div class="ctrl-sec" id="ctrl-fision" style="display:none">
+        <div class="ctrl-title">Isótopo</div>
+        <div class="opt-list">
+          <button class="opt-btn active" data-iso="U235" onclick="pickOpt(this,'iso')">
+            <span>Uranio-235</span><span class="sub">Z=92</span>
+          </button>
+          <button class="opt-btn" data-iso="Pu239" onclick="pickOpt(this,'iso')">
+            <span>Plutonio-239</span><span class="sub">Z=94</span>
+          </button>
+          <button class="opt-btn" data-iso="U233" onclick="pickOpt(this,'iso')">
+            <span>Uranio-233</span><span class="sub">Z=92</span>
+          </button>
+        </div>
+      </div>
+
+      <div class="ctrl-sec" id="ctrl-fusion" style="display:none">
+        <div class="ctrl-title">Reacción D-T</div>
+        <div class="info-box">
+          Fusión entre <strong>Deuterio (²H)</strong> y <strong>Tritio (³H)</strong>
+          a temperaturas superiores a 150 millones °C. Es la reacción de fusión
+          más estudiada para generación de energía.
+        </div>
+      </div>
+
+      <div class="ctrl-sec" id="ctrl-decay" style="display:none">
+        <div class="ctrl-title">Tipo de Decaimiento</div>
+        <div class="opt-list">
+          <button class="opt-btn active" data-decay="alfa" onclick="pickOpt(this,'decay')">
+            <span>Decaimiento Alfa (α)</span><span class="sub">⁴He emitido</span>
+          </button>
+          <button class="opt-btn" data-decay="beta" onclick="pickOpt(this,'decay')">
+            <span>Decaimiento Beta (β)</span><span class="sub">e⁻ emitido</span>
+          </button>
+          <button class="opt-btn" data-decay="gamma" onclick="pickOpt(this,'decay')">
+            <span>Decaimiento Gamma (γ)</span><span class="sub">fotón γ emitido</span>
+          </button>
+        </div>
+      </div>
+
+      <div class="ctrl-sec">
+        <button class="sim-btn" onclick="simulate()">▶ Simular reacción</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="eq-bar" id="eq-bar">Selecciona una reacción para ver la ecuación nuclear.</div>
+
+  <div class="ebar-wrap">
+    <div class="ebar-label"><span>Energía liberada</span><span id="ebar-val">—</span></div>
+    <div class="ebar-bg"><div class="ebar-fill" id="ebar-fill"></div></div>
+  </div>
+
+  <div class="results-row">
+    <div class="res-card hi">
+      <div class="val" id="res-1" style="color:var(--blue)">—</div>
+      <div class="lbl" id="lbl-1">Reactivo</div>
+    </div>
+    <div class="res-card">
+      <div class="val" id="res-2">—</div>
+      <div class="lbl" id="lbl-2">Producto 1</div>
+    </div>
+    <div class="res-card">
+      <div class="val" id="res-3">—</div>
+      <div class="lbl" id="lbl-3">Producto 2</div>
+    </div>
+    <div class="res-card hi">
+      <div class="val" id="res-4" style="color:var(--gold)">—</div>
+      <div class="lbl" id="lbl-4">Energía</div>
+    </div>
+  </div>
+
+  <div class="explanation" id="explanation">
+    Selecciona un tipo de reacción en los botones superiores, elige las opciones disponibles y presiona <strong>Simular reacción</strong>.
+  </div>
+
+</div>
+<script>
+/* ─── Data ─── */
+const DATA = {
+  fision: {
+    U235: {
+      eq:'²³⁵U + n → ¹⁴¹Ba + ⁹²Kr + 3n + 200 MeV',
+      r1:'Uranio-235',r2:'Bario-141',r3:'Kriptón-92',r4:'200 MeV',
+      l1:'Reactivo',l2:'Producto 1',l3:'Producto 2',l4:'Energía',
+      bar:88, cls:'exp-red',
+      exp:'Un <strong>neutrón lento</strong> es absorbido por el Uranio-235. El núcleo se vuelve inestable y se divide en Bario-141 y Kriptón-92, liberando <strong>3 neutrones</strong> libres y <strong>~200 MeV</strong>. Esos neutrones pueden provocar nuevas fisiones generando una reacción en cadena.'
+    },
+    Pu239:{
+      eq:'²³⁹Pu + n → ¹⁰³Rh + ¹³³Cs + 3n + 207 MeV',
+      r1:'Plutonio-239',r2:'Rodio-103',r3:'Cesio-133',r4:'207 MeV',
+      l1:'Reactivo',l2:'Producto 1',l3:'Producto 2',l4:'Energía',
+      bar:93, cls:'exp-red',
+      exp:'El <strong>Plutonio-239</strong> absorbe un neutrón y se fragmenta en Rodio-103 y Cesio-133, liberando <strong>3 neutrones</strong> y <strong>~207 MeV</strong>. Se produce en reactores a partir de Uranio-238 y se utiliza tanto en reactores avanzados como en aplicaciones militares.'
+    },
+    U233:{
+      eq:'²³³U + n → ⁹⁰Sr + ¹⁴⁰Xe + 3n + 191 MeV',
+      r1:'Uranio-233',r2:'Estroncio-90',r3:'Xenón-140',r4:'191 MeV',
+      l1:'Reactivo',l2:'Producto 1',l3:'Producto 2',l4:'Energía',
+      bar:80, cls:'exp-red',
+      exp:'El <strong>Uranio-233</strong> se produce a partir del Torio-232. Al fisionar genera Estroncio-90 y Xenón-140, liberando <strong>3 neutrones</strong> y <strong>~191 MeV</strong>. Es clave en el ciclo del torio, considerado una alternativa nuclear de próxima generación.'
+    }
+  },
+  fusion:{
+    eq:'²H + ³H → ⁴He + n + 17.6 MeV',
+    r1:'Deuterio (²H)',r2:'Tritio (³H)',r3:'Helio-4 (⁴He)',r4:'17.6 MeV',
+    l1:'Reactivo 1',l2:'Reactivo 2',l3:'Producto',l4:'Energía',
+    bar:65, cls:'exp-blue',
+    exp:'El <strong>deuterio</strong> y el <strong>tritio</strong> se fusionan a ~150 millones °C superando la repulsión electrostática. Se forma Helio-4 y se libera un neutrón rápido con <strong>17.6 MeV</strong> de energía. La fusión libera aproximadamente 4 veces más energía por masa que la fisión y es la fuente de energía del Sol.'
+  },
+  decay:{
+    alfa:{
+      eq:'²³⁸U → ²³⁴Th + ⁴He (α) + 4.27 MeV',
+      r1:'Uranio-238',r2:'Torio-234',r3:'Partícula α (⁴He)',r4:'4.27 MeV',
+      l1:'Núcleo inicial',l2:'Núcleo final',l3:'Partícula emitida',l4:'Energía',
+      bar:38, cls:'exp-green',
+      exp:'El <strong>Uranio-238</strong> emite una partícula alfa (núcleo de He-4: 2 protones + 2 neutrones). El número atómico baja de 92 a 90 (Torio) y el másico de 238 a 234. Las partículas alfa tienen corto alcance pero alta capacidad de ionización.'
+    },
+    beta:{
+      eq:'¹⁴C → ¹⁴N + e⁻ + ν̄ₑ + 0.156 MeV',
+      r1:'Carbono-14',r2:'Nitrógeno-14',r3:'Electrón (β⁻)',r4:'0.156 MeV',
+      l1:'Núcleo inicial',l2:'Núcleo final',l3:'Partícula emitida',l4:'Energía',
+      bar:18, cls:'exp-green',
+      exp:'En el <strong>decaimiento beta-menos</strong>, un neutrón se convierte en protón emitiendo un electrón y un antineutrino. El número atómico sube de 6 a 7 (C→N) sin cambio en el número másico. Este proceso es la base de la <strong>datación por radiocarbono</strong> de hasta ~50,000 años.'
+    },
+    gamma:{
+      eq:'⁶⁰Co* → ⁶⁰Co + γ (1.17 MeV) + γ (1.33 MeV)',
+      r1:'Co-60 excitado',r2:'Co-60 estable',r3:'2 fotones γ',r4:'2.50 MeV',
+      l1:'Núcleo inicial',l2:'Núcleo final',l3:'Radiación emitida',l4:'Energía',
+      bar:52, cls:'exp-green',
+      exp:'El <strong>decaimiento gamma</strong> no altera Z ni A: el núcleo en estado excitado libera su exceso energético como fotones de alta energía. El Co-60 emite dos fotones gamma y es ampliamente utilizado en <strong>radioterapia oncológica</strong> e irradiación industrial.'
+    }
+  }
+};
+
+/* ─── State ─── */
+let mode='', isoKey='U235', decayKey='alfa';
+let timers=[];
+const NS='http://www.w3.org/2000/svg';
+
+/* ─── Mode switch ─── */
+function setMode(m) {
+  mode=m;
+  ['fision','fusion','decay'].forEach(x=>{
+    document.getElementById('tab-'+x).className='tab';
+    document.getElementById('ctrl-'+x).style.display='none';
+  });
+  document.getElementById('tab-'+m).className='tab act-'+m;
+  document.getElementById('ctrl-'+m).style.display='block';
+  clearScene();
+  const vl={fision:'Fisión Nuclear — Cámara de Reacción',fusion:'Fusión Nuclear — Cámara de Plasma',decay:'Decaimiento Radiactivo'};
+  document.getElementById('vp-label').textContent=vl[m];
+  document.getElementById('eq-bar').textContent='Presiona Simular para ver la ecuación.';
+  document.getElementById('explanation').textContent='Presiona Simular reacción para iniciar la simulación.';
+  document.getElementById('explanation').className='explanation';
+  setCards('—','—','—','—','Reactivo','Producto 1','Producto 2','Energía');
+  document.getElementById('ebar-fill').style.width='0';
+  document.getElementById('ebar-val').textContent='—';
+}
+
+function pickOpt(btn,grp) {
+  btn.closest('.opt-list').querySelectorAll('.opt-btn').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');
+  if(grp==='iso')   isoKey=btn.dataset.iso;
+  if(grp==='decay') decayKey=btn.dataset.decay;
+}
+
+function setCards(v1,v2,v3,v4,l1,l2,l3,l4) {
+  [1,2,3,4].forEach(i=>{
+    document.getElementById('res-'+i).textContent=arguments[i-1];
+    document.getElementById('lbl-'+i).textContent=arguments[i+3];
+  });
+}
+
+function applyData(d,barCls) {
+  document.getElementById('eq-bar').textContent=d.eq;
+  setCards(d.r1,d.r2,d.r3,d.r4,d.l1,d.l2,d.l3,d.l4);
+  document.getElementById('ebar-val').textContent=d.r4;
+  const f=document.getElementById('ebar-fill');
+  f.className='ebar-fill '+barCls;
+  setTimeout(()=>{f.style.width=d.bar+'%';},80);
+  const exp=document.getElementById('explanation');
+  exp.innerHTML=d.exp;
+  exp.className='explanation '+d.cls;
+}
+
+/* ─── SVG utils ─── */
+function clearScene() {
+  timers.forEach(clearTimeout); timers=[];
+  const p=document.getElementById('particles');
+  while(p.firstChild) p.removeChild(p.firstChild);
+  showIdle(true);
+}
+
+function showIdle(v) {
+  document.getElementById('idle-text').style.display=v?'':'none';
+  document.getElementById('idle-sub').style.display=v?'':'none';
+}
+
+function el(tag,attrs) {
+  const e=document.createElementNS(NS,tag);
+  Object.entries(attrs).forEach(([k,v])=>e.setAttribute(k,v));
+  return e;
+}
+
+function addText(x,y,txt,size,fill,anchor,style) {
+  const t=el('text',{x,y,'text-anchor':anchor||'middle','font-family':'Segoe UI,sans-serif','font-size':size||11,'fill':fill||'#64748b'});
+  if(style) t.setAttribute('font-style',style);
+  t.textContent=txt;
+  document.getElementById('particles').appendChild(t);
+  return t;
+}
+
+function addNucleus(cx,cy,r,fill,stroke,label,subLabel) {
+  const p=document.getElementById('particles');
+  const g=document.createElementNS(NS,'g');
+  const c=el('circle',{cx,cy,r,fill,stroke,'stroke-width':'2'});
+  g.appendChild(c);
+  if(label){
+    const t=el('text',{x:cx,y:subLabel?cy-2:cy+4,'text-anchor':'middle','font-family':'Segoe UI,sans-serif','font-size':'12','font-weight':'700','fill':'#fff'});
+    t.textContent=label;
+    g.appendChild(t);
+  }
+  if(subLabel){
+    const t=el('text',{x:cx,y:cy+12,'text-anchor':'middle','font-family':'Segoe UI,sans-serif','font-size':'9','fill':'#fff'});
+    t.textContent=subLabel;
+    g.appendChild(t);
+  }
+  p.appendChild(g);
+  return g;
+}
+
+function flashRing(cx,cy,color,startR) {
+  const p=document.getElementById('particles');
+  const c=el('circle',{cx,cy,r:startR||12,fill:'none',stroke:color,'stroke-width':'2.5',opacity:'0.8'});
+  p.appendChild(c);
+  const t0=performance.now();
+  function tick(now){
+    const t=Math.min((now-t0)/700,1);
+    c.setAttribute('r',(startR||12)+t*55);
+    c.setAttribute('opacity',0.8*(1-t));
+    c.setAttribute('stroke-width',2.5*(1-t*0.6));
+    if(t<1) requestAnimationFrame(tick); else c.remove();
+  }
+  requestAnimationFrame(tick);
+}
+
+function moveTo(g,x1,y1,x2,y2,dur,cb) {
+  const t0=performance.now();
+  function tick(now){
+    const t=Math.min((now-t0)/dur,1);
+    const ex=t<1?t*(2-t):1;
+    const cx=x1+(x2-x1)*ex, cy=y1+(y2-y1)*ex;
+    g.setAttribute('transform',`translate(${cx-x1},${cy-y1})`);
+    if(t<1) requestAnimationFrame(tick); else if(cb) cb();
+  }
+  requestAnimationFrame(tick);
+}
+
+function flyParticle(x,y,tx,ty,r,fill,label,dur,cb) {
+  const p=document.getElementById('particles');
+  const g=document.createElementNS(NS,'g');
+  const c=el('circle',{cx:x,cy:y,r,fill});
+  g.appendChild(c);
+  if(label){
+    const t=el('text',{x,y:y+4,'text-anchor':'middle','font-family':'Segoe UI,sans-serif','font-size':'9','font-weight':'700','fill':'#fff'});
+    t.textContent=label; g.appendChild(t);
+  }
+  p.appendChild(g);
+  const t0=performance.now();
+  function tick(now){
+    const t=Math.min((now-t0)/dur,1);
+    const nx=x+(tx-x)*t, ny=y+(ty-y)*t;
+    c.setAttribute('cx',nx); c.setAttribute('cy',ny);
+    if(label){const lt=g.querySelector('text'); lt.setAttribute('x',nx); lt.setAttribute('y',ny+4);}
+    g.setAttribute('opacity',1-t*0.5);
+    if(t<1) requestAnimationFrame(tick); else {g.remove(); if(cb) cb();}
+  }
+  requestAnimationFrame(tick);
+}
+
+/* ─── Simulate ─── */
+function simulate() {
+  if(!mode){alert('Selecciona un tipo de reacción primero.');return;}
+  clearScene(); showIdle(false);
+  if(mode==='fision') doFision();
+  else if(mode==='fusion') doFusion();
+  else doDecay();
+}
+
+/* ─── FISION ─── */
+function doFision() {
+  const d=DATA.fision[isoKey];
+  const symMap={U235:'U',Pu239:'Pu',U233:'U'};
+  const massMap={U235:'235',Pu239:'239',U233:'233'};
+
+  // Initial nucleus
+  const nuc=addNucleus(270,200,46,'#e8d8c8','#c87848',symMap[isoKey],massMap[isoKey]);
+
+  // Incoming neutron from left
+  const neutG=addNucleus(70,200,9,'#475569','#334155','n');
+  addText(270,260,'Núcleo inicial',10,'#94a3b8');
+
+  moveTo(neutG,70,200,220,200,550,()=>{
+    neutG.remove();
+    flashRing(270,200,'#b83020');
+    flashRing(270,200,'#e05030',20);
+
+    const t1=setTimeout(()=>{
+      // Remove initial labels
+      document.querySelectorAll('#particles text').forEach(t=>t.remove());
+      nuc.remove();
+
+      // Product nuclei
+      const p1=addNucleus(270,200,33,'#c87848','#a05828','Ba','141');
+      const p2=addNucleus(270,200,27,'#5080c0','#2856a0','Kr','92');
+
+      moveTo(p1,270,200,120,200,700);
+      moveTo(p2,270,200,430,200,700);
+
+      // 3 neutrons
+      const angles=[-45,0,45];
+      angles.forEach((a,i)=>{
+        const rad=a*Math.PI/180;
+        flyParticle(270,200,270+Math.cos(rad)*240,200+Math.sin(rad)*240,8,'#475569','n',850+i*80);
+      });
+
+      const t2=setTimeout(()=>{
+        addText(120,250,'Bario-141',9,'#a05828');
+        addText(430,248,'Kriptón-92',9,'#2856a0');
+        addText(340,316,'+ 3 neutrones libres → reacción en cadena',10,'#94a3b8','middle','italic');
+      },780);
+      timers.push(t2);
+    },320);
+    timers.push(t1);
+  });
+
+  applyData(d,'fill-red');
+}
+
+/* ─── FUSION ─── */
+function doFusion() {
+  const d=DATA.fusion;
+  const deut=addNucleus(110,200,32,'#4488cc','#2255aa','²H');
+  const trit=addNucleus(570,200,32,'#5599dd','#2266bb','³H');
+  addText(110,248,'Deuterio',10,'#94a3b8');
+  addText(570,248,'Tritio',10,'#94a3b8');
+
+  moveTo(deut,110,200,218,200,700);
+  moveTo(trit,570,200,460,200,700,()=>{
+    flashRing(340,200,'#004a99');
+    flashRing(340,200,'#2277ee',22);
+    deut.remove(); trit.remove();
+    document.querySelectorAll('#particles text').forEach(t=>t.remove());
+
+    const he=addNucleus(340,200,40,'#2266bb','#0044aa','⁴He');
+    addText(340,258,'Helio-4',10,'#94a3b8');
+
+    // Neutron flies right
+    flyParticle(340,200,610,160,9,'#475569','n',900);
+
+    const t1=setTimeout(()=>{
+      addText(612,148,'n rápido',9,'#64748b');
+      addText(340,318,'Energía: 17.6 MeV',11,'#004a99');
+      addText(340,334,'(fuente de energía del Sol)',10,'#94a3b8','middle','italic');
+    },700);
+    timers.push(t1);
+  });
+
+  applyData(d,'fill-blue');
+}
+
+/* ─── DECAY ─── */
+function doDecay() {
+  const d=DATA.decay[decayKey];
+  const cfg={
+    alfa:{nucFill:'#e8e0d0',nucStroke:'#9a8870',nucLabel:'U',nucSub:'238',
+          dFill:'#ddd8c8',dStroke:'#8a7860',dLabel:'Th',dSub:'234',
+          pFill:'#2a8040',pLabel:'α',pSize:16,pX:580,pY:120,
+          pLbl:'Partícula α (⁴He)'},
+    beta: {nucFill:'#d0e8d0',nucStroke:'#507050',nucLabel:'¹⁴C',nucSub:null,
+           dFill:'#c0d8c0',dStroke:'#3a6a3a',dLabel:'¹⁴N',dSub:null,
+           pFill:'#1a5a9a',pLabel:'β⁻',pSize:10,pX:580,pY:130,
+           pLbl:'Electrón (β⁻)'},
+    gamma:{nucFill:'#d8d8e8',nucStroke:'#606080',nucLabel:'⁶⁰Co*',nucSub:null,
+           dFill:'#c8c8e0',dStroke:'#505078',dLabel:'⁶⁰Co',dSub:null,
+           pFill:'#7a3a8a',pLabel:'γ',pSize:8,pX:580,pY:110,
+           pLbl:'Fotón γ (×2)'}
+  }[decayKey];
+
+  const nuc=addNucleus(280,200,44,cfg.nucFill,cfg.nucStroke,cfg.nucLabel,cfg.nucSub);
+  addText(280,260,'Núcleo inestable',10,'#94a3b8');
+
+  const t1=setTimeout(()=>{
+    flashRing(280,200,cfg.pFill);
+    nuc.remove();
+    document.querySelectorAll('#particles text').forEach(t=>t.remove());
+
+    const dNuc=addNucleus(280,200,38,cfg.dFill,cfg.dStroke,cfg.dLabel,cfg.dSub);
+    addText(280,253,'Núcleo final (estable)',10,'#94a3b8');
+
+    flyParticle(280,200,cfg.pX,cfg.pY,cfg.pSize,cfg.pFill,cfg.pLabel,900);
+
+    if(decayKey==='gamma'){
+      flyParticle(280,200,cfg.pX,290,cfg.pSize,cfg.pFill,'γ',1050);
+    }
+    if(decayKey==='beta'){
+      flyParticle(280,200,580,270,6,'#888','ν̄',950);
+      addText(600,262,'antineutrino',8,'#94a3b8');
+    }
+
+    const t2=setTimeout(()=>{
+      addText(cfg.pX,cfg.pY-16,cfg.pLbl,9,'#64748b');
+      addText(280,316,'Energía liberada: '+d.r4,11,cfg.pFill);
+    },750);
+    timers.push(t2);
+  },600);
+  timers.push(t1);
+
+  applyData(d,'fill-green');
+}
+</script>
+</body>
+</html>
